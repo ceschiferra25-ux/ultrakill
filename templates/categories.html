@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}CATEGORIES // ULTRAKILL GUIDE{% endblock %}
+
+{% block content %}
+<section class="section-header">
+  <h2>CATEGORIES // FACTIONS</h2>
+</section>
+
+<div class="cards-grid">
+  {% for cat in categories %}
+    <article class="entry-card">
+      <div>
+        <span class="badge">{{ cat['count'] }} ENTRIES</span>
+        <h3>{{ cat['name']|upper }}</h3>
+        <p class="card-lore" style="margin-top: 8px;">{{ cat['description'] }}</p>
+      </div>
+      <a class="menu-btn" href="{{ url_for('entries', faction=cat['name']) }}">ESPLORA {{ cat['name']|upper }}</a>
+    </article>
+  {% endfor %}
+</div>
+{% endblock %}

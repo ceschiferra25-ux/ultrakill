@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ entry['name'] }} // ULTRAKILL GUIDE{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+  <span class="badge">{{ entry['category']|upper }}</span>
+  <h2>{{ entry['name'] }}</h2>
+</div>
+
+<div class="detail-blocks">
+  <div class="info-box">
+    <h3>LORE</h3>
+    <p>{{ entry['lore'] }}</p>
+  </div>
+
+  <div class="info-box">
+    <h3>ATTACK PATTERNS</h3>
+    <p>{{ entry['attack_patterns'] }}</p>
+  </div>
+
+  <div class="info-box">
+    <h3>WEAKNESSES</h3>
+    <p>{{ entry['weaknesses'] }}</p>
+  </div>
+
+  <div class="info-box">
+    <h3>STRATEGIES</h3>
+    <p>{{ entry['strategies'] }}</p>
+  </div>
+</div>
+
+<section class="forum-section">
+  <h3>COMMUNITY TIPS / FORUM</h3>
+
+  <form method="POST" action="{{ url_for('entry_detail', entry_id=entry['id']) }}" class="comment-form" id="commentForm">
+    <input type="text" name="author" id="authorInput" placeholder="Il tuo nickname" required />
+    <textarea name="message" id="messageInput" rows="3" placeholder="Scrivi un consiglio o una strategia..." required></textarea>
+    <button type="submit" class="menu-btn small">INVIA COMMENTO</button>
+  </form>
+
+  <div class="comments-list">
+    {% for c in comments %}
+      <div class="comment-item">
+        <div class="comment-meta">
+          <strong>{{ c['author'] }}</strong>
+          <span>{{ c['created_at'] }}</span>
+        </div>
+        <p>{{ c['message'] }}</p>
+      </div>
+    {% else %}
+      <p>Ancora nessun commento per questa scheda. Aggiungi il primo consiglio!</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

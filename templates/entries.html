@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} // ULTRAKILL GUIDE{% endblock %}
+
+{% block content %}
+<section class="section-header">
+  <h2>{{ page_title }}</h2>
+  <form method="GET" action="{{ form_action }}" class="filter-bar">
+    <select name="faction">
+      <option value="all" {% if faction == 'all' %}selected{% endif %}>ALL CATEGORIES (6)</option>
+      <option value="Husks" {% if faction == 'Husks' %}selected{% endif %}>HUSKS</option>
+      <option value="Machines" {% if faction == 'Machines' %}selected{% endif %}>MACHINES</option>
+      <option value="Demons" {% if faction == 'Demons' %}selected{% endif %}>DEMONS</option>
+      <option value="Angels" {% if faction == 'Angels' %}selected{% endif %}>ANGELS</option>
+      <option value="Other" {% if faction == 'Other' %}selected{% endif %}>OTHER</option>
+      <option value="Prime Souls" {% if faction == 'Prime Souls' %}selected{% endif %}>PRIME SOULS</option>
+    </select>
+
+    {% if form_action == url_for('entries') %}
+    <select name="category">
+      <option value="all" {% if category == 'all' %}selected{% endif %}>ALL TYPES</option>
+      <option value="enemy" {% if category == 'enemy' %}selected{% endif %}>CYBER GRIND ENEMIES</option>
+      <option value="boss" {% if category == 'boss' %}selected{% endif %}>BOSSES</option>
+    </select>
+    {% endif %}
+
+    <input type="text" id="liveSearch" name="search" value="{{ search }}" placeholder="Cerca nome o lore..." />
+    <button type="submit" class="menu-btn">FILTRA</button>
+  </form>
+</section>
+
+<div class="cards-grid" id="entriesGrid">
+  {% for item in entries %}
+    <article class="entry-card" data-name="{{ item['name']|lower }}" data-lore="{{ item['lore']|lower }}">
+      <div>
+        <span class="badge">
+          {{ item['faction']|upper }} //
+          {% if item['is_secret'] %}
+            SECRET
+          {% elif item['category'] == 'boss' %}
+            BOSS
+          {% else %}
+            CYBER GRIND
+          {% endif %}
+        </span>
+        <h3>{{ item['name'] }}</h3>
+        <p class="card-lore" style="margin-top: 8px;">{{ item['lore'] }}</p>
+      </div>
+      <a class="menu-btn" href="{{ url_for('entry_detail', entry_id=item['id']) }}">APRI SCHEDA</a>
+    </article>
+  {% else %}
+    <p>Nessuna voce trovata con questi filtri.</p>
+  {% endfor %}
+</div>
+{% endblock %}

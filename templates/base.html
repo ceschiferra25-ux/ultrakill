@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}ULTRAKILL GUIDE{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="terminal-frame">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-title">ULTRAKILL</span>
+        <span class="brand-sub">// GUIDE TERMINAL</span>
+      </div>
+      <nav class="nav-links">
+        <a href="{{ url_for('index') }}">HOME</a>
+        <a href="{{ url_for('entries') }}">ALL ENEMIES</a>
+        <a href="{{ url_for('categories') }}">CATEGORIES</a>
+        <a href="{{ url_for('bosses') }}">BOSSES</a>
+        <a href="{{ url_for('secrets') }}">SECRET ENCOUNTERS</a>
+        <a href="{{ url_for('submit_entry') }}">+ ADD</a>
+      </nav>
+    </header>
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
