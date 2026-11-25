@@ -1,0 +1,20 @@
+{# One entry card. Included by entries.html; main.js builds the same markup from the API. #}
+{% set img = image_url(item) %}
+<article class="entry-card">
+  <div class="card-media {% if not img %}is-icon{% endif %}">
+    {% if img %}
+      <img src="{{ img }}" alt="" loading="lazy">
+    {% else %}
+      <img src="{{ url_for('static', filename='images/factions/' ~ faction_slug(item['faction']) ~ '.svg') }}" alt="" loading="lazy">
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <p class="badge">
+      {{ item['faction'] }} //
+      {% if item['is_secret'] %}secret{% elif item['category'] == 'boss' %}boss{% else %}enemy{% endif %}
+      {% if item['is_cyber_grind'] %}<span class="badge-cg" title="Can spawn in the Cyber Grind">CG</span>{% endif %}
+    </p>
+    <h2 class="card-title"><a href="{{ url_for('entry_detail', entry_id=item['id']) }}">{{ item['name'] }}</a></h2>
+    <p class="card-lore">{{ item['lore'] }}</p>
+  </div>
+</article>

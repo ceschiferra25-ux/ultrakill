@@ -1,33 +1,76 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ULTRAKILL Guide: lore, attack patterns, weaknesses and strategies for every enemy and boss.">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}ULTRAKILL GUIDE{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#content">Skip to content</a>
+
+  {# Navigation items: (endpoint, label). The current page gets aria-current. #}
+  {% set nav = [('index', 'Home'), ('entries', 'All enemies'), ('categories', 'Factions'),
+                ('bosses', 'Bosses'), ('secrets_page', 'Secrets')] %}
+
   <div class="terminal-frame">
     <header class="top-bar">
-      <div class="brand">
+      <a class="brand" href="{{ url_for('index') }}">
         <span class="brand-title">ULTRAKILL</span>
-        <span class="brand-sub">// GUIDE TERMINAL</span>
-      </div>
-      <nav class="nav-links">
-        <a href="{{ url_for('index') }}">HOME</a>
-        <a href="{{ url_for('entries') }}">ALL ENEMIES</a>
-        <a href="{{ url_for('categories') }}">CATEGORIES</a>
-        <a href="{{ url_for('bosses') }}">BOSSES</a>
-        <a href="{{ url_for('secrets') }}">SECRET ENCOUNTERS</a>
-        <a href="{{ url_for('submit_entry') }}">+ ADD</a>
+        <span class="brand-sub">// guide terminal</span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+        <span class="visually-hidden">Menu</span>
+      </button>
+
+      <nav id="site-nav" class="nav-links" aria-label="Main">
+        {% for endpoint, label in nav %}
+          <a href="{{ url_for(endpoint) }}" {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+        {% if is_admin %}
+          <a class="nav-accent" href="{{ url_for('new_entry') }}" {% if request.endpoint == 'new_entry' %}aria-current="page"{% endif %}>+ Add entry</a>
+          <form class="inline-form" method="POST" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="nav-button" type="submit">Log out</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" {% if request.endpoint == 'auth.login' %}aria-current="page"{% endif %}>Admin</a>
+        {% endif %}
       </nav>
     </header>
 
-    <main class="content">
+    {# Flash messages from the server, plus messages added by main.js (same container). #}
+    <div class="toasts" id="toasts" role="status" aria-live="polite">
+      {% for category, message in get_flashed_messages(with_categories=true) %}
+        <p class="toast toast-{{ category }}">{{ message }}</p>
+      {% endfor %}
+    </div>
+
+    <main class="content" id="content" tabindex="-1">
       {% block content %}{% endblock %}
     </main>
+
+    <footer class="site-footer">
+      <p>Fan-made guide for a university web project. ULTRAKILL and its characters &copy; Arsi "Hakita" Patala / New Blood Interactive. Data checked against the <a href="https://ultrakill.wiki.gg/" rel="noopener">official ULTRAKILL wiki</a>.</p>
+    </footer>
   </div>
 
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {# Confirmation dialog reused by every delete button (see main.js). #}
+  <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="confirmTitle">
+    <form method="dialog">
+      <h2 id="confirmTitle">Confirm</h2>
+      <p id="confirmText">Are you sure?</p>
+      <div class="dialog-actions">
+        <button class="menu-btn" value="cancel" type="submit">Cancel</button>
+        <button class="menu-btn danger" value="confirm" type="submit">Delete</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

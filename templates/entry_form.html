@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set editing = entry is not none %}
+{% block title %}{{ 'Edit ' ~ entry['name'] if editing else 'New entry' }} // ULTRAKILL GUIDE{% endblock %}
+
+{# Text field with label, length limit and inline error message. #}
+{% macro textarea(name, label, hint) %}
+  <div class="field">
+    <label for="{{ name }}">{{ label }}</label>
+    <textarea id="{{ name }}" name="{{ name }}" rows="3" maxlength="{{ LIMITS[name] }}" required
+              aria-describedby="{{ name }}Hint {{ name }}Error" {% if errors[name] %}aria-invalid="true"{% endif %}>{{ values.get(name, '') }}</textarea>
+    <p class="field-hint" id="{{ name }}Hint">{{ hint }}</p>
+    <p class="field-error" id="{{ name }}Error">{{ errors[name] or '' }}</p>
+  </div>
+{% endmacro %}
+
+{% block content %}
+<section class="section-header">
+  <h1>{{ 'Edit // ' ~ entry['name'] if editing else 'New entry // enemy or boss' }}</h1>
+</section>
+
+{% if errors %}
+  <div class="form-summary" role="alert">
+    <p>Please fix {{ errors|length }} field{{ '' if errors|length == 1 else 's' }} below.</p>
+  </div>
+{% endif %}
+
+<form method="POST" enctype="multipart/form-data" class="entry-form" novalidate
+      action="{{ url_for('edit_entry', entry_id=entry['id']) if editing else url_for('new_entry') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="field">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" maxlength="{{ LIMITS.name }}" required value="{{ values.get('name', '') }}"
+           aria-describedby="nameError" {% if errors.name %}aria-invalid="true"{% endif %}>
+    <p class="field-error" id="nameError">{{ errors.name or '' }}</p>
+  </div>
+
+  <div class="form-row">
+    <div class="field">
+      <label for="category">Type</label>
+      <select id="category" name="category">
+        <option value="enemy" {% if values.get('category') == 'enemy' %}selected{% endif %}>Enemy</option>
+        <option value="boss" {% if values.get('category') == 'boss' %}selected{% endif %}>Boss</option>
+      </select>
+      <p class="field-error">{{ errors.category or '' }}</p>
+    </div>
+
+    <div class="field">
+      <label for="faction">Faction</label>
+      <select id="faction" name="faction">
+        {% for f in FACTIONS %}
+          <option value="{{ f }}" {% if values.get('faction') == f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+      <p class="field-error">{{ errors.faction or '' }}</p>
+    </div>
+  </div>
+
+  <fieldset class="checks">
+    <legend>Flags</legend>
+    <label><input type="checkbox" name="is_cyber_grind" value="1" {% if values.get('is_cyber_grind') %}checked{% endif %}> Can spawn in the Cyber Grind</label>
+    <label><input type="checkbox" name="is_secret" value="1" {% if values.get('is_secret') %}checked{% endif %}> Secret encounter</label>
+  </fieldset>
+
+  {{ textarea('lore', 'Lore', 'Who or what it is, in a sentence or two.') }}
+  {{ textarea('attack_patterns', 'Attack patterns', 'How it fights.') }}
+  {{ textarea('weaknesses', 'Weaknesses', 'What it is vulnerable to.') }}
+  {{ textarea('strategies', 'Strategies', 'How to beat it.') }}
+
+  <div class="field">
+    <label for="image">Picture <span class="optional">(optional, max 2 MB)</span></label>
+    <input type="file" id="image" name="image" accept=".webp,.png,.jpg,.jpeg,.gif"
+           aria-describedby="imageError" {% if errors.image %}aria-invalid="true"{% endif %}>
+    <p class="field-error" id="imageError">{{ errors.image or '' }}</p>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="menu-btn">{{ 'Save changes' if editing else 'Save to database' }}</button>
+    <a class="menu-btn ghost" href="{{ url_for('entry_detail', entry_id=entry['id']) if editing else url_for('entries') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

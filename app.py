@@ -1,52 +1,92 @@
-import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, abort
+"""ULTRAKILL Guide - Flask application: configuration, HTML pages and error handling.
 
-app = Flask(__name__)
-DATABASE = "database.db"
+Run with `python app.py` (development server on http://127.0.0.1:5000).
+The JSON API lives in api.py, login and CSRF in auth.py, queries in models.py.
+"""
+import os
+import secrets
+
+from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
+                   request, url_for)
+
+import api
+import auth
+import db
+import models
+from db import FACTION_DESCRIPTIONS, FACTIONS
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+def create_app(test_config=None):
+    """Application factory: builds a configured app (tests pass their own config)."""
+    app = Flask(__name__)
+    app.config.update(
+        # Set SECRET_KEY in the environment for real use; the random fallback logs everyone
+        # out at every restart, which is acceptable for local development only.
+        SECRET_KEY=os.environ.get("SECRET_KEY") or secrets.token_hex(32),
+        DATABASE=os.environ.get("DATABASE", os.path.join(BASE_DIR, "database.db")),
+        ENEMY_IMAGE_FOLDER=os.path.join(BASE_DIR, "static", "images", "enemies"),
+        MAX_CONTENT_LENGTH=2 * 1024 * 1024,  # uploads larger than 2 MB get a 413 error
+        SESSION_COOKIE_HTTPONLY=True,  # JavaScript cannot read the session cookie
+        SESSION_COOKIE_SAMESITE="Lax",  # cookie not sent on cross-site POSTs
+    )
+    if test_config:
+        app.config.update(test_config)
+    os.makedirs(app.config["ENEMY_IMAGE_FOLDER"], exist_ok=True)
+
+    db.init_app(app)
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(api.bp)
+    app.before_request(auth.load_admin)
+    app.before_request(auth.check_csrf)
+
+    # First run: create and fill the database automatically.
+    if not os.path.exists(app.config["DATABASE"]):
+        with app.app_context():
+            db.init_db()
+
+    register_template_helpers(app)
+    register_pages(app)
+    register_error_handlers(app)
+
+    @app.after_request
+    def security_headers(response):
+        """Browser-side protections: no sniffing, no framing, only our own scripts/styles."""
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' data:; style-src 'self'; "
+            "script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+        )
+        return response
+
+    return app
 
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+def register_template_helpers(app):
+    """Functions and constants available in every Jinja template."""
+    @app.context_processor
+    def inject():
+        return {
+            "csrf_token": auth.csrf_token,
+            "FACTIONS": FACTIONS,
+            "LIMITS": models.LIMITS,
+            "faction_slug": models.faction_slug,
+            "image_url": models.image_url,
+            "is_admin": g.get("admin") is not None,
+        }
 
 
-@app.route("/entries")
-def entries():
-    category = request.args.get("category", "all").lower()
+def _listing(page_title, form_action, category="all", secret_only=False, show_type_filter=True):
+    """Shared view for the three entry lists (all / bosses / secrets)."""
+    category = request.args.get("category", category).lower()
     faction = request.args.get("faction", "all")
-    search = request.args.get("search", "").strip()
-
-    query = "SELECT * FROM entries WHERE 1=1"
-    params = []
-
-    if category in ("boss", "enemy"):
-        query += " AND category = ?"
-        params.append(category)
-
-    if faction != "all":
-        query += " AND faction = ?"
-        params.append(faction)
-
-    if search:
-        query += " AND (name LIKE ? OR lore LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
-
-    query += " ORDER BY faction ASC, name ASC"
-
-    conn = get_db_connection()
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-
-    page_title = "ALL ENEMIES // DATABASE"
-    if faction != "all":
-        page_title = f"CATEGORY // {faction.upper()}"
-
+    search = request.args.get("search", "").strip()[:80]
+    rows = models.search_entries(category, faction, search, secret_only)
+    if faction in FACTIONS and not secret_only:
+        page_title = f"{faction} // {page_title}"
     return render_template(
         "entries.html",
         entries=rows,
@@ -54,155 +94,132 @@ def entries():
         faction=faction,
         search=search,
         page_title=page_title,
-        form_action=url_for("entries")
+        form_action=form_action,
+        show_type_filter=show_type_filter,
+        secret_only=secret_only,
     )
 
 
-@app.route("/categories")
-def categories():
-    conn = get_db_connection()
-    factions_order = ["Husks", "Machines", "Demons", "Angels", "Other", "Prime Souls"]
-    descriptions = {
-        "Husks": "Manifestazioni fisiche delle anime dei dannati nell'Inferno, la cui forma dipende dalla volontà e dalla fama in vita.",
-        "Machines": "Unità robotiche alimentate a sangue costruite dall'umanità durante la Grande Guerra e la Nuova Pace.",
-        "Demons": "Creature nate direttamente dalla materia infernale e rivestite da gusci di pietra scolpita.",
-        "Angels": "Entità celesti del Paradiso incaricate di sorvegliare i gironi dell'Inferno e mantenere l'ordine divino.",
-        "Other": "Costrutti organici come Flesh Prison/Panopticon e anomalie segrete nascoste nei livelli.",
-        "Prime Souls": "Anime umane dalla volontà così immensa da manifestarsi senza alcun corpo fisico."
-    }
+def register_pages(app):
+    """HTML pages. GET pages render templates; POST pages redirect after success (PRG)."""
 
-    category_cards = []
-    for f in factions_order:
-        count = conn.execute("SELECT COUNT(*) FROM entries WHERE faction = ?", (f,)).fetchone()[0]
-        category_cards.append({
-            "name": f,
-            "count": count,
-            "description": descriptions.get(f, "")
-        })
+    @app.route("/")
+    def index():
+        return render_template("index.html", stats=models.stats())
 
-    conn.close()
-    return render_template("categories.html", categories=category_cards)
+    @app.route("/entries")
+    def entries():
+        return _listing("All enemies", url_for("entries"))
 
+    @app.route("/bosses")
+    def bosses():
+        return _listing("Bosses", url_for("bosses"), category="boss", show_type_filter=False)
 
-@app.route("/bosses")
-def bosses():
-    faction = request.args.get("faction", "all")
-    search = request.args.get("search", "").strip()
+    @app.route("/secrets")
+    def secrets_page():
+        return _listing("Secret encounters", url_for("secrets_page"), secret_only=True, show_type_filter=False)
 
-    query = "SELECT * FROM entries WHERE category = 'boss'"
-    params = []
+    @app.route("/categories")
+    def categories():
+        counts = models.faction_counts()
+        cards = [{"name": f, "count": counts[f], "description": FACTION_DESCRIPTIONS[f]} for f in FACTIONS]
+        return render_template("categories.html", categories=cards)
 
-    if faction != "all":
-        query += " AND faction = ?"
-        params.append(faction)
+    @app.route("/entry/<int:entry_id>", methods=["GET", "POST"])
+    def entry_detail(entry_id):
+        entry = models.get_entry(entry_id) or abort(404)
+        errors, values = {}, {}
+        # POST is the no-JavaScript fallback; with JS the form uses POST /api/.../comments.
+        if request.method == "POST":
+            values, errors = models.validate_comment(request.form)
+            if not errors:
+                models.create_comment(entry_id, values)
+                flash("Tip posted. Thanks!", "success")
+                return redirect(url_for("entry_detail", entry_id=entry_id, _anchor="tips"))
+        status = 422 if errors else 200
+        return render_template("detail.html", entry=entry, comments=models.list_comments(entry_id),
+                               errors=errors, values=values), status
 
-    if search:
-        query += " AND (name LIKE ? OR lore LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
+    @app.route("/entries/new", methods=["GET", "POST"])
+    @auth.admin_required
+    def new_entry():
+        values, errors = {"category": "enemy", "faction": "Husks"}, {}
+        if request.method == "POST":
+            values, errors = models.validate_entry(request.form)
+            if not errors:
+                image, image_error = models.save_image(request.files.get("image"), values["name"])
+                if image_error:
+                    errors["image"] = image_error
+                else:
+                    entry_id = models.create_entry({**values, "image": image})
+                    flash(f"{values['name']} added to the database.", "success")
+                    return redirect(url_for("entry_detail", entry_id=entry_id))
+        return render_template("entry_form.html", values=values, errors=errors, entry=None), (422 if errors else 200)
 
-    query += " ORDER BY faction ASC, name ASC"
+    @app.route("/entry/<int:entry_id>/edit", methods=["GET", "POST"])
+    @auth.admin_required
+    def edit_entry(entry_id):
+        entry = models.get_entry(entry_id) or abort(404)
+        values, errors = dict(entry), {}
+        if request.method == "POST":
+            values, errors = models.validate_entry(request.form, entry_id=entry_id)
+            if not errors:
+                image, image_error = models.save_image(request.files.get("image"), values["name"])
+                if image_error:
+                    errors["image"] = image_error
+                else:
+                    if image:
+                        values["image"] = image
+                    models.update_entry(entry_id, values)
+                    flash("Changes saved.", "success")
+                    return redirect(url_for("entry_detail", entry_id=entry_id))
+        return render_template("entry_form.html", values=values, errors=errors, entry=entry), (422 if errors else 200)
 
-    conn = get_db_connection()
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
+    @app.route("/entry/<int:entry_id>/delete", methods=["POST"])
+    @auth.admin_required
+    def delete_entry(entry_id):
+        entry = models.get_entry(entry_id) or abort(404)
+        models.delete_entry(entry_id)
+        flash(f"{entry['name']} deleted.", "success")
+        return redirect(url_for("entries"))
 
-    return render_template(
-        "entries.html",
-        entries=rows,
-        category="boss",
-        faction=faction,
-        search=search,
-        page_title="BOSSES // SPECIAL ENCOUNTERS",
-        form_action=url_for("bosses")
-    )
-
-
-@app.route("/secrets")
-def secrets():
-    search = request.args.get("search", "").strip()
-
-    query = "SELECT * FROM entries WHERE is_secret = 1"
-    params = []
-
-    if search:
-        query += " AND (name LIKE ? OR lore LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
-
-    query += " ORDER BY name ASC"
-
-    conn = get_db_connection()
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-
-    return render_template(
-        "entries.html",
-        entries=rows,
-        category="boss",
-        faction="Other",
-        search=search,
-        page_title="SECRET ENCOUNTERS // HIDDEN ENTITIES",
-        form_action=url_for("secrets")
-    )
-
-
-@app.route("/entry/<int:entry_id>", methods=["GET", "POST"])
-def entry_detail(entry_id):
-    conn = get_db_connection()
-    entry = conn.execute("SELECT * FROM entries WHERE id = ?", (entry_id,)).fetchone()
-
-    if entry is None:
-        conn.close()
-        abort(404)
-
-    if request.method == "POST":
-        author = request.form.get("author", "").strip()
-        message = request.form.get("message", "").strip()
-        if author and message:
-            conn.execute(
-                "INSERT INTO comments (entry_id, author, message) VALUES (?, ?, ?)",
-                (entry_id, author, message),
-            )
-            conn.commit()
-        conn.close()
-        return redirect(url_for("entry_detail", entry_id=entry_id))
-
-    comments = conn.execute(
-        "SELECT * FROM comments WHERE entry_id = ? ORDER BY created_at DESC",
-        (entry_id,),
-    ).fetchall()
-    conn.close()
-
-    return render_template("detail.html", entry=entry, comments=comments)
+    @app.route("/comment/<int:comment_id>/delete", methods=["POST"])
+    @auth.admin_required
+    def delete_comment(comment_id):
+        entry_id = request.form.get("entry_id", type=int)
+        if not models.delete_comment(comment_id):
+            abort(404)
+        flash("Tip deleted.", "success")
+        return redirect(url_for("entry_detail", entry_id=entry_id, _anchor="tips") if entry_id else url_for("index"))
 
 
-@app.route("/submit", methods=["GET", "POST"])
-def submit_entry():
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        category = request.form.get("category", "enemy").lower()
-        faction = request.form.get("faction", "Machines")
-        is_cyber_grind = 1 if request.form.get("is_cyber_grind") == "1" else 0
-        is_secret = 1 if request.form.get("is_secret") == "1" else 0
-        lore = request.form.get("lore", "").strip()
-        attack_patterns = request.form.get("attack_patterns", "").strip()
-        weaknesses = request.form.get("weaknesses", "").strip()
-        strategies = request.form.get("strategies", "").strip()
+ERROR_TEXT = {
+    400: ("Bad request", "The request could not be processed."),
+    404: ("Not found", "This page does not exist, or the entry was deleted."),
+    405: ("Method not allowed", "This address does not accept that kind of request."),
+    413: ("File too large", "Images can be at most 2 MB."),
+    500: ("Server error", "Something broke on our side. Try again in a moment."),
+}
 
-        if name and lore and attack_patterns and weaknesses and strategies:
-            conn = get_db_connection()
-            conn.execute(
-                """
-                INSERT INTO entries (name, category, faction, is_cyber_grind, is_secret, lore, attack_patterns, weaknesses, strategies)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (name, category, faction, is_cyber_grind, is_secret, lore, attack_patterns, weaknesses, strategies),
-            )
-            conn.commit()
-            conn.close()
-            return redirect(url_for("entries"))
 
-    return render_template("submit.html")
+def register_error_handlers(app):
+    """Themed HTML error pages; JSON errors for /api/ addresses."""
+    def handle(error):
+        code = getattr(error, "code", 500) or 500
+        title, text = ERROR_TEXT.get(code, ERROR_TEXT[500])
+        if code == 400 and getattr(error, "description", None) and "session" in error.description:
+            text = error.description
+        if request.path.startswith("/api/"):
+            return jsonify(error=title), code
+        return render_template("error.html", code=code, title=title, text=text), code
 
+    for code in ERROR_TEXT:
+        app.register_error_handler(code, handle)
+
+
+app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # debug stays off unless FLASK_DEBUG=1: the debugger must never run on a public server
+    # PORT lets you avoid a busy port (on macOS, AirPlay Receiver takes 5000)
+    app.run(port=int(os.environ.get("PORT", 5000)), debug=os.environ.get("FLASK_DEBUG") == "1")

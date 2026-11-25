@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Generated at first run (python init_db.py)
+database.db
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

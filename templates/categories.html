@@ -1,20 +1,23 @@
 {% extends "base.html" %}
-{% block title %}CATEGORIES // ULTRAKILL GUIDE{% endblock %}
+{% block title %}Factions // ULTRAKILL GUIDE{% endblock %}
 
 {% block content %}
 <section class="section-header">
-  <h2>CATEGORIES // FACTIONS</h2>
+  <h1>Factions</h1>
+  <p class="section-intro">Every creature in Hell belongs to one of six factions.</p>
 </section>
 
 <div class="cards-grid">
   {% for cat in categories %}
-    <article class="entry-card">
-      <div>
-        <span class="badge">{{ cat['count'] }} ENTRIES</span>
-        <h3>{{ cat['name']|upper }}</h3>
-        <p class="card-lore" style="margin-top: 8px;">{{ cat['description'] }}</p>
+    <article class="entry-card faction-card">
+      <div class="card-media is-icon">
+        <img src="{{ url_for('static', filename='images/factions/' ~ faction_slug(cat['name']) ~ '.svg') }}" alt="">
       </div>
-      <a class="menu-btn" href="{{ url_for('entries', faction=cat['name']) }}">ESPLORA {{ cat['name']|upper }}</a>
+      <div class="card-body">
+        <p class="badge">{{ cat['count'] }} entr{{ 'y' if cat['count'] == 1 else 'ies' }}</p>
+        <h2 class="card-title"><a href="{{ url_for('entries', faction=cat['name']) }}">{{ cat['name'] }}</a></h2>
+        <p class="card-lore">{{ cat['description'] }}</p>
+      </div>
     </article>
   {% endfor %}
 </div>

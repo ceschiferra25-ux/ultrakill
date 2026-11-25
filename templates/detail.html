@@ -2,53 +2,99 @@
 {% block title %}{{ entry['name'] }} // ULTRAKILL GUIDE{% endblock %}
 
 {% block content %}
-<div class="detail-header">
-  <span class="badge">{{ entry['category']|upper }}</span>
-  <h2>{{ entry['name'] }}</h2>
-</div>
+{% set img = image_url(entry) %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('entries') }}">All enemies</a> /
+  <a href="{{ url_for('entries', faction=entry['faction']) }}">{{ entry['faction'] }}</a> /
+  <span aria-current="page">{{ entry['name'] }}</span>
+</nav>
+
+<section class="detail-header">
+  <div class="detail-media {% if not img %}is-icon{% endif %}">
+    {% if img %}
+      <img src="{{ img }}" alt="{{ entry['name'] }}">
+    {% else %}
+      <img src="{{ url_for('static', filename='images/factions/' ~ faction_slug(entry['faction']) ~ '.svg') }}"
+           alt="{{ entry['faction'] }} faction icon">
+    {% endif %}
+  </div>
+
+  <div class="detail-title">
+    <p class="badge">
+      {{ entry['faction'] }} // {{ entry['category'] }}{% if entry['is_secret'] %} // secret{% endif %}
+      {% if entry['is_cyber_grind'] %}<span class="badge-cg">Cyber Grind</span>{% endif %}
+    </p>
+    <h1>{{ entry['name'] }}</h1>
+
+    {% if is_admin %}
+    <div class="admin-actions">
+      <a class="menu-btn small" href="{{ url_for('edit_entry', entry_id=entry['id']) }}">Edit</a>
+      {# Without JS this form posts normally; main.js intercepts it, asks for confirmation and uses DELETE /api/entries/<id>. #}
+      <form method="POST" action="{{ url_for('delete_entry', entry_id=entry['id']) }}" class="inline-form js-delete"
+            data-api="{{ url_for('api.delete_entry', entry_id=entry['id']) }}"
+            data-confirm="Delete {{ entry['name'] }} and all its tips? This cannot be undone."
+            data-redirect="{{ url_for('entries') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="menu-btn small danger">Delete</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</section>
 
 <div class="detail-blocks">
-  <div class="info-box">
-    <h3>LORE</h3>
-    <p>{{ entry['lore'] }}</p>
-  </div>
-
-  <div class="info-box">
-    <h3>ATTACK PATTERNS</h3>
-    <p>{{ entry['attack_patterns'] }}</p>
-  </div>
-
-  <div class="info-box">
-    <h3>WEAKNESSES</h3>
-    <p>{{ entry['weaknesses'] }}</p>
-  </div>
-
-  <div class="info-box">
-    <h3>STRATEGIES</h3>
-    <p>{{ entry['strategies'] }}</p>
-  </div>
+  <section class="info-box"><h2>Lore</h2><p>{{ entry['lore'] }}</p></section>
+  <section class="info-box"><h2>Attack patterns</h2><p>{{ entry['attack_patterns'] }}</p></section>
+  <section class="info-box"><h2>Weaknesses</h2><p>{{ entry['weaknesses'] }}</p></section>
+  <section class="info-box"><h2>Strategies</h2><p>{{ entry['strategies'] }}</p></section>
 </div>
 
-<section class="forum-section">
-  <h3>COMMUNITY TIPS / FORUM</h3>
+<section class="forum-section" id="tips" aria-labelledby="tipsTitle">
+  <h2 id="tipsTitle">Community tips <span class="count" id="commentCount">({{ comments|length }})</span></h2>
 
-  <form method="POST" action="{{ url_for('entry_detail', entry_id=entry['id']) }}" class="comment-form" id="commentForm">
-    <input type="text" name="author" id="authorInput" placeholder="Il tuo nickname" required />
-    <textarea name="message" id="messageInput" rows="3" placeholder="Scrivi un consiglio o una strategia..." required></textarea>
-    <button type="submit" class="menu-btn small">INVIA COMMENTO</button>
+  <form method="POST" action="{{ url_for('entry_detail', entry_id=entry['id']) }}" class="comment-form" id="commentForm"
+        data-api="{{ url_for('api.add_comment', entry_id=entry['id']) }}" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="field">
+      <label for="authorInput">Nickname</label>
+      <input type="text" name="author" id="authorInput" maxlength="{{ LIMITS.author }}" required
+             value="{{ values.get('author', '') }}" autocomplete="nickname"
+             aria-describedby="authorError" {% if errors.author %}aria-invalid="true"{% endif %}>
+      <p class="field-error" id="authorError">{{ errors.author or '' }}</p>
+    </div>
+
+    <div class="field">
+      <label for="messageInput">Your tip</label>
+      <textarea name="message" id="messageInput" rows="3" maxlength="{{ LIMITS.message }}" required
+                placeholder="A strategy, a weakness, a trick that worked for you..."
+                aria-describedby="messageError" {% if errors.message %}aria-invalid="true"{% endif %}>{{ values.get('message', '') }}</textarea>
+      <p class="field-error" id="messageError">{{ errors.message or '' }}</p>
+    </div>
+
+    <button type="submit" class="menu-btn small">Post tip</button>
   </form>
 
-  <div class="comments-list">
+  <div class="comments-list" id="commentsList">
     {% for c in comments %}
-      <div class="comment-item">
+      <article class="comment-item" id="comment-{{ c['id'] }}">
         <div class="comment-meta">
           <strong>{{ c['author'] }}</strong>
-          <span>{{ c['created_at'] }}</span>
+          <time datetime="{{ c['created_at'] }}">{{ c['created_at'][:16] }} UTC</time>
         </div>
         <p>{{ c['message'] }}</p>
-      </div>
+        {% if is_admin %}
+          <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" class="inline-form js-delete"
+                data-api="{{ url_for('api.delete_comment', comment_id=c['id']) }}"
+                data-confirm="Delete this tip by {{ c['author'] }}?" data-remove="#comment-{{ c['id'] }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="entry_id" value="{{ entry['id'] }}">
+            <button type="submit" class="link-button">Delete tip</button>
+          </form>
+        {% endif %}
+      </article>
     {% else %}
-      <p>Ancora nessun commento per questa scheda. Aggiungi il primo consiglio!</p>
+      <p class="empty-state" id="noComments">No tips yet for this entry. Be the first!</p>
     {% endfor %}
   </div>
 </section>
