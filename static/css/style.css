@@ -312,6 +312,7 @@ h2 { font-size: 1.05rem; letter-spacing: 1px; }
 .card-media {
   aspect-ratio: 16 / 10;
   display: grid;
+  grid-template-rows: minmax(0, 1fr); /* row = box height, so tall pictures shrink instead of being cropped */
   place-items: center;
   border-bottom: 1px solid var(--line);
   background: radial-gradient(circle at 50% 60%, #1c1c1c, #000 70%);
@@ -368,6 +369,7 @@ h2 { font-size: 1.05rem; letter-spacing: 1px; }
   border: 1px solid var(--ink);
   border-radius: var(--radius);
   display: grid;
+  grid-template-rows: minmax(0, 1fr); /* row = box height, so tall pictures shrink instead of being cropped */
   place-items: center;
   background: radial-gradient(circle at 50% 60%, #1c1c1c, #000 70%);
 }
