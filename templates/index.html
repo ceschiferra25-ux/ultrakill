@@ -2,48 +2,39 @@
 {% block title %}ULTRAKILL GUIDE // Home{% endblock %}
 
 {% block content %}
-<div class="code-bg-lines" aria-hidden="true">
-  <p>#INCLUDE ( above. so ) FROM "dHJpc2lI22lzdHUZ":</p>
-  <p>#INCLUDE ( Permutation , Transmutation, exhalation ) FROM "CHJPbmNpcGx1"</p>
-  <p>void* b_dy = malloc(sizeof(struct body) + sizeof(abdomen));</p>
-  <p>void* p_dy = realloc(b_dy, sizeof(struct body) + sizeof(abdomen) + sizeof(legs));</p>
-</div>
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <h1 class="uk-title" id="hero-title">Ultrakill <span class="uk-subtitle">Field guide to Hell</span></h1>
 
-<section class="hero-showcase" aria-labelledby="hero-title">
-  <div class="hero-left">
-    <h1 class="uk-title" id="hero-title">
-      ULTRAKILL
-      <span class="uk-subtitle">GUIDE</span>
-    </h1>
+    {# The game's own tagline. #}
+    <p class="tagline">Mankind is dead.<br>Blood is fuel.<br>Hell is full.</p>
 
-    <div class="boot-log" aria-label="System status">
-      <p>SYSTEM V1 INITIALIZED</p>
-      <p>DIAGNOSTICS...OK</p>
-      <p>DATABASE: {{ stats.total }} ENTRIES LOADED<span class="cursor" aria-hidden="true">_</span></p>
-    </div>
-
-    <p class="hero-intro">Lore, attack patterns, weaknesses and strategies for every enemy and boss in Hell, plus tips from the community.</p>
+    <p class="hero-intro">Lore, attack patterns, weaknesses and strategies for every enemy and boss you meet on the way down, plus tips from other players.</p>
 
     <nav class="uk-menu-stack" aria-label="Sections">
-      <a class="uk-btn" href="{{ url_for('entries') }}">All enemies</a>
-      <a class="uk-btn" href="{{ url_for('categories') }}">Factions</a>
-      <a class="uk-btn" href="{{ url_for('bosses') }}">Bosses</a>
-      <a class="uk-btn" href="{{ url_for('secrets_page') }}">Secret encounters</a>
+      <a class="uk-btn" href="{{ url_for('entries') }}">All enemies <span class="uk-btn-count">{{ stats.total }}</span></a>
+      <a class="uk-btn" href="{{ url_for('bosses') }}">Bosses <span class="uk-btn-count">{{ stats.bosses }}</span></a>
+      <a class="uk-btn" href="{{ url_for('secrets_page') }}">Secret encounters <span class="uk-btn-count">{{ stats.secrets }}</span></a>
+      <a class="uk-btn" href="{{ url_for('categories') }}">Factions <span class="uk-btn-count">6</span></a>
     </nav>
   </div>
 
-  <div class="hero-right">
-    <img src="{{ url_for('static', filename='images/v1-diagram.png') }}"
-         alt="Blueprint diagram of V1, the machine the player controls"
-         class="v1-blueprint" width="287" height="347">
-  </div>
+  {# 3D V1: the picture in front, then 11 red silhouettes of the same cut-out pushed back
+     in depth by style.css, so the model has thickness when it turns. main.js tilts it
+     towards the pointer. Only the picture is announced to screen readers. #}
+  <figure class="v1-stage" id="v1Stage">
+    <div class="v1-floor" aria-hidden="true"></div>
+    <div class="v1-model">
+      <img class="v1-layer" src="{{ url_for('static', filename='images/v1-cutout.png') }}"
+           alt="Blueprint of V1, the machine you play as" width="271" height="286">
+      {% for _ in range(11) %}<span class="v1-layer v1-depth" aria-hidden="true"></span>{% endfor %}
+    </div>
+    <figcaption class="boot-log">V1 online. Database: {{ stats.total }} entries loaded<span class="cursor" aria-hidden="true">_</span></figcaption>
+  </figure>
 </section>
 
-<section class="stat-row" aria-label="Database statistics">
-  <div class="stat"><span class="stat-value">{{ stats.total }}</span><span class="stat-label">entries</span></div>
-  <div class="stat"><span class="stat-value">{{ stats.bosses }}</span><span class="stat-label">bosses</span></div>
-  <div class="stat"><span class="stat-value">{{ stats.cyber_grind }}</span><span class="stat-label">in Cyber Grind</span></div>
-  <div class="stat"><span class="stat-value">{{ stats.secrets }}</span><span class="stat-label">secrets</span></div>
-  <div class="stat"><span class="stat-value">{{ stats.comments }}</span><span class="stat-label">community tips</span></div>
-</section>
+<p class="stat-line">
+  {{ stats.bosses }} bosses, {{ stats.secrets }} secret encounters and {{ stats.cyber_grind }} enemies that spawn in the Cyber Grind.
+  {% if stats.comments %}{{ stats.comments }} tips from the community so far.{% else %}No community tips yet: open an enemy and add the first one.{% endif %}
+</p>
 {% endblock %}

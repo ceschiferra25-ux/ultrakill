@@ -107,10 +107,11 @@ function renderCard(entry) {
   media.append(img);
 
   const body = el("div", "card-body");
-  const kind = entry.is_secret ? "secret" : entry.category === "boss" ? "boss" : "enemy";
-  const badge = el("p", "badge", `${entry.faction} // ${kind} `);
+  const badge = el("p", "badge", `${entry.faction} `);
+  if (entry.is_secret) badge.append(el("span", "tag tag-secret", "Secret"), " ");
+  else if (entry.category === "boss") badge.append(el("span", "tag tag-boss", "Boss"), " ");
   if (entry.is_cyber_grind) {
-    const cg = el("span", "badge-cg", "CG");
+    const cg = el("span", "tag badge-cg", "CG");
     cg.title = "Can spawn in the Cyber Grind";
     badge.append(cg);
   }
@@ -257,6 +258,28 @@ function initDeleteForms() {
   });
 }
 
+/* ------------------------------------------------------------------ 3D V1 on the home page */
+
+/** Tilt the layered V1 model towards the pointer. CSS does the 3D; this only sets two angles. */
+function initV1Stage() {
+  const stage = document.getElementById("v1Stage");
+  if (!stage || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  let frame = 0;
+  window.addEventListener("pointermove", (event) => {
+    if (frame) return;  // at most one update per animation frame
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const box = stage.getBoundingClientRect();
+      // -1 .. 1 from the centre of the stage, clamped so far-away pointers don't over-rotate
+      const x = Math.max(-1, Math.min(1, (event.clientX - (box.left + box.width / 2)) / (box.width / 2) / 2));
+      const y = Math.max(-1, Math.min(1, (event.clientY - (box.top + box.height / 2)) / (box.height / 2) / 2));
+      stage.style.setProperty("--tilt-y", `${x * 34}deg`);
+      stage.style.setProperty("--tilt-x", `${-y * 12}deg`);
+    });
+  });
+}
+
 /* ------------------------------------------------------------------ start */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -265,4 +288,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initFilters();
   initCommentForm();
   initDeleteForms();
+  initV1Stage();
 });
