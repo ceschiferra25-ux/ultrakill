@@ -21,8 +21,9 @@
 
   <div class="detail-title">
     <p class="badge">
-      {{ entry['faction'] }} // {{ entry['category'] }}{% if entry['is_secret'] %} // secret{% endif %}
-      {% if entry['is_cyber_grind'] %}<span class="badge-cg">Cyber Grind</span>{% endif %}
+      {{ entry['faction'] }}
+      {% if entry['is_secret'] %}<span class="tag tag-secret">Secret</span>{% elif entry['category'] == 'boss' %}<span class="tag tag-boss">Boss</span>{% else %}<span class="tag">Enemy</span>{% endif %}
+      {% if entry['is_cyber_grind'] %}<span class="tag badge-cg">Cyber Grind</span>{% endif %}
     </p>
     <h1>{{ entry['name'] }}</h1>
 

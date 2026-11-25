@@ -12,7 +12,7 @@ def test_public_pages_render(client, path):
 
 
 def test_home_shows_statistics(client):
-    assert b"41 ENTRIES LOADED" in client.get("/").data
+    assert b"41 entries loaded" in client.get("/").data
 
 
 def test_faction_filter(client):
@@ -102,7 +102,7 @@ def test_login_does_not_redirect_to_other_sites(client, csrf):
 def test_admin_creates_entry_with_all_fields(admin, entry_form):
     response = admin.post("/entries/new", data=entry_form(faction="Demons", is_secret="1"), follow_redirects=True)
     page = response.data.decode()
-    assert "Test Husk" in page and "Demons // enemy // secret" in page
+    assert "Test Husk" in page and "Demons" in page and 'class="tag tag-secret">Secret' in page
 
 
 def test_invalid_entry_keeps_values(admin, entry_form):

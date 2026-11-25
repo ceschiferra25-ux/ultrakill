@@ -10,9 +10,9 @@
   </div>
   <div class="card-body">
     <p class="badge">
-      {{ item['faction'] }} //
-      {% if item['is_secret'] %}secret{% elif item['category'] == 'boss' %}boss{% else %}enemy{% endif %}
-      {% if item['is_cyber_grind'] %}<span class="badge-cg" title="Can spawn in the Cyber Grind">CG</span>{% endif %}
+      {{ item['faction'] }}
+      {% if item['is_secret'] %}<span class="tag tag-secret">Secret</span>{% elif item['category'] == 'boss' %}<span class="tag tag-boss">Boss</span>{% endif %}
+      {% if item['is_cyber_grind'] %}<span class="tag badge-cg" title="Can spawn in the Cyber Grind">CG</span>{% endif %}
     </p>
     <h2 class="card-title"><a href="{{ url_for('entry_detail', entry_id=item['id']) }}">{{ item['name'] }}</a></h2>
     <p class="card-lore">{{ item['lore'] }}</p>

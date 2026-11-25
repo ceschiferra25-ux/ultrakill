@@ -78,7 +78,8 @@ init_db.py        rebuilds the database: python init_db.py
 templates/        Jinja templates (base layout + one per page, _entry_card partial)
 static/css/       style.css, organised in numbered sections
 static/js/        main.js: menu, live filters, tips, deletes, toasts, dialog
-static/images/    V1 diagram, faction icons (SVG), enemies/ for pictures
+static/fonts/     self-hosted fonts (woff2)
+static/images/    V1 diagram and its cut-out for the 3D model, faction icons (SVG), enemies/ for pictures
 tests/            pytest suite
 ```
 
@@ -130,3 +131,5 @@ All three members reviewed each other's code and can explain every part of the p
 ## Credits
 
 ULTRAKILL and its characters © Arsi "Hakita" Patala / New Blood Interactive. Enemy data checked against the official ULTRAKILL wiki (<https://ultrakill.wiki.gg>). Fan-made, non-commercial university project.
+
+Fonts: [Big Shoulders Display](https://fonts.google.com/specimen/Big+Shoulders+Display) and [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch), both under the SIL Open Font License 1.1, served from `static/fonts/` so the site works offline.
