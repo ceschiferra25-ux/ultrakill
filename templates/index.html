@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}ULTRAKILL GUIDE // HOME{% endblock %}
+{% block title %}ULTRAKILL GUIDE // Home{% endblock %}
 
 {% block content %}
 <div class="code-bg-lines" aria-hidden="true">
@@ -9,34 +9,41 @@
   <p>void* p_dy = realloc(b_dy, sizeof(struct body) + sizeof(abdomen) + sizeof(legs));</p>
 </div>
 
-<section class="hero-showcase">
+<section class="hero-showcase" aria-labelledby="hero-title">
   <div class="hero-left">
-    <h1 class="uk-title">
+    <h1 class="uk-title" id="hero-title">
       ULTRAKILL
       <span class="uk-subtitle">GUIDE</span>
     </h1>
 
-    <div class="boot-log">
+    <div class="boot-log" aria-label="System status">
       <p>SYSTEM V1 INITIALIZED</p>
       <p>DIAGNOSTICS...OK</p>
-      <p>STANDBY - WAIT FOR WAKE</p>
+      <p>DATABASE: {{ stats.total }} ENTRIES LOADED<span class="cursor" aria-hidden="true">_</span></p>
     </div>
 
-    <div class="uk-menu-stack">
-      <a class="uk-btn active" href="{{ url_for('index') }}">HOME</a>
-      <a class="uk-btn" href="{{ url_for('entries') }}">ALL ENEMIES</a>
-      <a class="uk-btn" href="{{ url_for('categories') }}">CATEGORIES</a>
-      <a class="uk-btn" href="{{ url_for('bosses') }}">BOSSES</a>
-      <a class="uk-btn" href="{{ url_for('secrets') }}">SECRET ENCOUNTERS</a>
-    </div>
+    <p class="hero-intro">Lore, attack patterns, weaknesses and strategies for every enemy and boss in Hell, plus tips from the community.</p>
+
+    <nav class="uk-menu-stack" aria-label="Sections">
+      <a class="uk-btn" href="{{ url_for('entries') }}">All enemies</a>
+      <a class="uk-btn" href="{{ url_for('categories') }}">Factions</a>
+      <a class="uk-btn" href="{{ url_for('bosses') }}">Bosses</a>
+      <a class="uk-btn" href="{{ url_for('secrets_page') }}">Secret encounters</a>
+    </nav>
   </div>
 
   <div class="hero-right">
-    <img
-      src="{{ url_for('static', filename='images/v1-diagram.png') }}"
-      alt="V1 Blueprint Diagram"
-      class="v1-blueprint"
-    />
+    <img src="{{ url_for('static', filename='images/v1-diagram.png') }}"
+         alt="Blueprint diagram of V1, the machine the player controls"
+         class="v1-blueprint" width="287" height="347">
   </div>
+</section>
+
+<section class="stat-row" aria-label="Database statistics">
+  <div class="stat"><span class="stat-value">{{ stats.total }}</span><span class="stat-label">entries</span></div>
+  <div class="stat"><span class="stat-value">{{ stats.bosses }}</span><span class="stat-label">bosses</span></div>
+  <div class="stat"><span class="stat-value">{{ stats.cyber_grind }}</span><span class="stat-label">in Cyber Grind</span></div>
+  <div class="stat"><span class="stat-value">{{ stats.secrets }}</span><span class="stat-label">secrets</span></div>
+  <div class="stat"><span class="stat-value">{{ stats.comments }}</span><span class="stat-label">community tips</span></div>
 </section>
 {% endblock %}

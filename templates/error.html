@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} {{ title }} // ULTRAKILL GUIDE{% endblock %}
+
+{% block content %}
+<section class="error-screen">
+  <p class="error-code" aria-hidden="true">{{ code }}</p>
+  <h1>{{ title }}</h1>
+  <p class="boot-log">ERROR {{ code }} // {{ text }}</p>
+  <div class="form-actions">
+    <a class="menu-btn" href="{{ url_for('index') }}">Back to home</a>
+    <a class="menu-btn ghost" href="{{ url_for('entries') }}">All enemies</a>
+  </div>
+</section>
+{% endblock %}
