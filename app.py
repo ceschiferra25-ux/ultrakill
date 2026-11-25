@@ -221,4 +221,5 @@ app = create_app()
 
 if __name__ == "__main__":
     # debug stays off unless FLASK_DEBUG=1: the debugger must never run on a public server
-    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
+    # PORT lets you avoid a busy port (on macOS, AirPlay Receiver takes 5000)
+    app.run(port=int(os.environ.get("PORT", 5000)), debug=os.environ.get("FLASK_DEBUG") == "1")

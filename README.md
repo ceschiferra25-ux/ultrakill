@@ -42,6 +42,10 @@ python app.py
 
 Open <http://127.0.0.1:5000>.
 
+> **macOS:** AirPlay Receiver also listens on port 5000, so `http://localhost:5000`
+> may answer `403 Forbidden`. Use `http://127.0.0.1:5000`, or pick another port:
+> `PORT=5001 python app.py` (Windows PowerShell: `$env:PORT=5001; python app.py`).
+
 **Admin login:** username `admin`, password `ultrakill-admin`.
 To use different credentials, set them before creating the database:
 
@@ -100,8 +104,10 @@ tests/            pytest suite
 
 ## Pictures
 
-Cards show `static/images/enemies/<slug>.<ext>` when the file exists and fall back to the faction icon otherwise.
-`static/images/enemies/README.md` lists, for every entry, the file name to use and the matching file on the official wiki. Admins can also upload a picture from the entry form (max 2 MB, images only).
+All 41 entries ship with a picture in `static/images/enemies/<slug>.<ext>` (about 1.5 MB in total), taken from the official
+ULTRAKILL wiki and scaled down to at most 800 px per side. `static/images/enemies/README.md` lists the source wiki file of each one.
+If a picture is missing, the card falls back to the faction icon. To replace one, drop a file with the same name in that folder;
+admins can also upload a picture from the entry form (max 2 MB, images only).
 
 ## Team and contributions
 
@@ -117,7 +123,7 @@ All three members reviewed each other's code and can explain every part of the p
 
 - A single admin role: there are no user accounts for people posting tips, so nicknames are not verified.
 - No pagination: fine for 41 entries, needed if the database grows a lot.
-- Pictures must be added by hand (see above); they are not shipped with the project for copyright reasons.
+- Pictures belong to New Blood Interactive and are used under fair use for a non-commercial university project; a public release would need permission or original art.
 - The wiki lists a few enemies added in recent updates (e.g. Mirror Reaper, Geryon, Deathcatcher, Providence, Power) that are not in the database yet; an admin can add them from the site.
 - For a public deployment: run behind a production WSGI server (e.g. gunicorn), set `SECRET_KEY` and the admin credentials, and add rate limiting on login.
 
